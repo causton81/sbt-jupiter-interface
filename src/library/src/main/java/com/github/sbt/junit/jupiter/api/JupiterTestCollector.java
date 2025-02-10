@@ -34,6 +34,7 @@ import java.util.concurrent.Callable;
 import org.junit.platform.engine.TestSource;
 import org.junit.platform.engine.support.descriptor.ClassSource;
 import org.junit.platform.engine.support.descriptor.MethodSource;
+import org.junit.platform.launcher.EngineFilter;
 import org.junit.platform.launcher.LauncherDiscoveryRequest;
 import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
@@ -60,7 +61,7 @@ public class JupiterTestCollector {
    * @return A result which contains discovered test items.
    * @throws Exception If an error occurs
    */
-  public Result collectTests() throws Exception {
+  public Result collectTests(List<String> engines) throws Exception {
 
     if (!classDirectory.exists()) {
 
@@ -69,7 +70,7 @@ public class JupiterTestCollector {
     }
 
     final ClassLoader customClassLoader = new URLClassLoader(runtimeClassPath, classLoader);
-    return invokeWithCustomClassLoader(customClassLoader, this::collectTests0);
+    return invokeWithCustomClassLoader(customClassLoader, () -> collectTests0(engines));
   }
 
   /**
@@ -223,18 +224,20 @@ public class JupiterTestCollector {
    *
    * @return The result of discovered tests.
    */
-  private Result collectTests0() {
+  private Result collectTests0(List<String> engines) {
 
     Set<Path> classPathRoots = new HashSet<>();
     classPathRoots.add(Paths.get(classDirectory.getAbsolutePath()));
 
-    LauncherDiscoveryRequest request =
+    LauncherDiscoveryRequestBuilder builder =
         LauncherDiscoveryRequestBuilder.request()
             .selectors(selectClasspathRoots(classPathRoots))
-            .selectors(selectDirectory(classDirectory))
-            .build();
+            .selectors(selectDirectory(classDirectory));
 
-    TestPlan testPlan = LauncherFactory.create().discover(request);
+    if (!engines.isEmpty())
+      builder.filters(EngineFilter.includeEngines(engines));
+
+    TestPlan testPlan = LauncherFactory.create().discover(builder.build());
 
     Result result = new Result();
 

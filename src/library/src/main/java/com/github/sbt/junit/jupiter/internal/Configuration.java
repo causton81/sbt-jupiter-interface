@@ -178,6 +178,9 @@ public class Configuration {
       return ((MethodSource) testSource).getClassName();
     }
 
+    if (identifier.getUniqueIdObject().getEngineId().orElse("").equalsIgnoreCase("junit-platform-suite"))
+      return identifier.getUniqueId();
+
     throw new RuntimeException("Test identifier with unknown source: " + identifier);
   }
 
@@ -393,10 +396,15 @@ public class Configuration {
           name = colorTheme.container().format(":" + segment.getValue());
           break;
         case "suite": // Don't show junit5 suite as part of name
+          if (options.isTypesEnabled())
+            return String.format(" %s:%s", segment.getType(), segment.getValue());
           name = null;
           break;
         default:
           name = " " + segment.getValue();
+          if (options.isTypesEnabled())
+            return String.format(" %s:%s", segment.getType(), segment.getValue());
+
           break;
       }
 

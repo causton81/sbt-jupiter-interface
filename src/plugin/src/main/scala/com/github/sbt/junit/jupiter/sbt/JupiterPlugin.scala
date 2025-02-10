@@ -28,7 +28,7 @@ import sbt.plugins.JvmPlugin
 import sbt.AutoPlugin
 import sbt.Def
 import sbt.*
-import scala.collection.JavaConverters.*
+import scala.jdk.CollectionConverters._
 
 object Import {
 
@@ -44,6 +44,8 @@ object Import {
       "The JUnit Jupiter version which is used by this plugin.")
     val junitVintageVersion: SettingKey[String] = SettingKey[String]("junit-vintage-version",
       "The JUnit Vintage version which is compatible with this plugin.")
+    val platformEngines: SettingKey[Seq[String]] = SettingKey("platform-engines",
+      "The platform engines to use for test discovery. An empty list will use all found on classpath.")
   }
 }
 
@@ -67,7 +69,8 @@ object JupiterPlugin extends AutoPlugin {
     jupiterVersion := readResourceProperty("jupiter-interface.properties", "version"),
     junitPlatformVersion := readResourceProperty("jupiter-interface.properties", "junit.platform.version"),
     junitJupiterVersion := readResourceProperty("jupiter-interface.properties", "junit.jupiter.version"),
-    junitVintageVersion := readResourceProperty("jupiter-interface.properties", "junit.vintage.version")
+    junitVintageVersion := readResourceProperty("jupiter-interface.properties", "junit.vintage.version"),
+    platformEngines := Seq.empty
   )
 
   override def projectSettings: Seq[Def.Setting[_]] = inConfig(Test)(scopedSettings) ++ unscopedSettings
@@ -97,6 +100,7 @@ object JupiterPlugin extends AutoPlugin {
   private def collectTests = Def.task[Seq[TestDefinition]] {
     val classes = classDirectory.value
     val classpath = dependencyClasspath.value.map(_.data.toURI.toURL).toArray :+ classes.toURI.toURL
+    val engines = platformEngines.value
 
     val collector = new JupiterTestCollector.Builder()
       .withClassDirectory(classes)
@@ -104,7 +108,7 @@ object JupiterPlugin extends AutoPlugin {
       .withRuntimeClassPath(classpath)
       .build()
 
-    val discoveredTests = collector.collectTests().getDiscoveredTests.asScala.toList.map(toTestDefinition)
+    val discoveredTests = collector.collectTests(engines.asJava).getDiscoveredTests.asScala.toList.map(toTestDefinition)
     if (discoveredTests.nonEmpty) {
       if (!hasRuntimeLibrary(classpath)) {
         throw new RuntimeException(
