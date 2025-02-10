@@ -108,17 +108,23 @@ object JupiterPlugin extends AutoPlugin {
       .withRuntimeClassPath(classpath)
       .build()
 
-    val discoveredTests = collector.collectTests(engines.asJava).getDiscoveredTests.asScala.toList.map(toTestDefinition)
-    if (discoveredTests.nonEmpty) {
-      if (!hasRuntimeLibrary(classpath)) {
-        throw new RuntimeException(
-          "Found at least one JUnit 5 test silently ignored by SBT due to `jupiter-interface` " +
-            "not being on this projects test-classpath."
-        )
+    try {
+      val discoveredTests = collector.collectTests(engines.asJava).getDiscoveredTests.asScala.toList.map(toTestDefinition)
+      if (discoveredTests.nonEmpty) {
+        if (!hasRuntimeLibrary(classpath)) {
+          throw new RuntimeException(
+            "Found at least one JUnit 5 test silently ignored by SBT due to `jupiter-interface` " +
+              "not being on this projects test-classpath."
+          )
+        }
       }
-    }
 
-    discoveredTests
+      discoveredTests
+    }catch {
+      case ex:Exception =>
+        streams.value.log.error(ex.toString)
+        throw ex
+    }
   }.dependsOn(compile)
 
   /*

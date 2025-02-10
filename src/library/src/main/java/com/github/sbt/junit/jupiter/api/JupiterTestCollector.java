@@ -26,10 +26,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.Callable;
 import org.junit.platform.engine.TestSource;
 import org.junit.platform.engine.support.descriptor.ClassSource;
@@ -242,6 +239,10 @@ public class JupiterTestCollector {
     Result result = new Result();
 
     for (TestIdentifier rootIdentifier : testPlan.getRoots()) {
+
+      String engineId = rootIdentifier.getUniqueIdObject().getEngineId().orElse("");
+      if(engineId.equalsIgnoreCase("cucumber"))
+        throw new RuntimeException("collect jupiter tests: check for incompatible engines: " + engineId);
 
       for (TestIdentifier identifier : testPlan.getChildren(rootIdentifier)) {
 
