@@ -240,9 +240,7 @@ public class JupiterTestCollector {
 
     for (TestIdentifier rootIdentifier : testPlan.getRoots()) {
 
-      String engineId = rootIdentifier.getUniqueIdObject().getEngineId().orElse("");
-      if(engineId.equalsIgnoreCase("cucumber"))
-        throw new RuntimeException("collect jupiter tests: check for incompatible engines: " + engineId);
+      throwOnIncompatibleEngine(rootIdentifier);
 
       for (TestIdentifier identifier : testPlan.getChildren(rootIdentifier)) {
 
@@ -259,6 +257,23 @@ public class JupiterTestCollector {
     }
 
     return result;
+  }
+
+  private static void throwOnIncompatibleEngine(TestIdentifier rootIdentifier) {
+    String engineId = rootIdentifier.getUniqueIdObject().getEngineId().orElse("");
+    if (engineId.equalsIgnoreCase("cucumber"))
+      throw new IncompatibleEngineException(engineId);
+  }
+
+  static class IncompatibleEngineException extends RuntimeException {
+    final String engineId;
+
+    public IncompatibleEngineException(String engineId) {
+      super(String.format(
+              "The core engine, %s, was found during discovery." +
+                      " Hint: try configuring the engine as a delegate of the junit-platform-suite-engine instead.", engineId));
+      this.engineId = engineId;
+    }
   }
 
   private String fullyQualifiedName(TestIdentifier testIdentifier) {
